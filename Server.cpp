@@ -20,6 +20,10 @@ class Socket{
             return sockfd;
         }
 
+        Socket(const Socket&) = delete;
+        Socket& operator=(const Socket&) = delete;
+
+        //Deconstructor
         ~Socket(){
             if(sockfd != -1){
                 close(sockfd);
