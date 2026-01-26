@@ -2,6 +2,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h> 
+#include <unistd.h>
+#include <optional>
 using namespace std ; 
 
 class Socket{
@@ -9,7 +11,7 @@ class Socket{
         int sockfd;
     public:
         //Constructor
-        Socket(int &domain, int &type, int &protocol){
+        Socket(int domain, int type, int protocol){
             sockfd = ::socket(domain, type, protocol);
             if(sockfd == -1){
                 throw runtime_error("getting fd failed");
@@ -22,6 +24,13 @@ class Socket{
 
         Socket(const Socket&) = delete;
         Socket& operator=(const Socket&) = delete;
+
+        // Is this address valid?
+        void bind(sockaddr *my_addr, size_t addrlen){
+            if(::bind(sockfd, my_addr, addrlen) == -1){
+                throw runtime_error("bind failed");
+            }
+        }
 
         //Deconstructor
         ~Socket(){
@@ -36,18 +45,31 @@ class Socket{
 int main(){
     int status;
     struct addrinfo hints{}; 
-    struct addrinfo *res;
+    struct addrinfo *res, *p;
+    int yes = 1;
 
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
 
-    status = getaddrinfor(NULL, "2026", &hints, &res);
+    status = getaddrinfo(NULL, "2026", &hints, &res);
     if(status != 0){
         throw runtime_error("Getting address information failed");
     }
 
-
+    optional<Socket> s;
+    for(p = res; p != NULL; p = p->ai_next){
+        try{
+            s = Socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+            if(setsockopt(s.getfd(), SOL_SOCKET, SO_REUSEADDR,&yes, sizeof(yes)) == -1){
+                throw runtime_error("Cannot reuse");
+            }
+            s.bind(p->ai_addr, p->ai_addrlen);
+            
+            break;
+        }catch(...){
+            continue;
+        }
+    }
 
     return 0;
 }
