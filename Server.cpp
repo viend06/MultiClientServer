@@ -32,6 +32,13 @@ class Socket{
             }
         }
 
+        // Create stack
+        void listen(int backlog){
+            if(::listen(sockfd, backlog) == -1){
+                throw runtime_error("Can not create stack for server");
+            }
+        }
+
         //Deconstructor
         ~Socket(){
             if(sockfd != -1){
@@ -56,15 +63,15 @@ int main(){
         throw runtime_error("Getting address information failed");
     }
 
-    optional<Socket> s;
+    optional<Socket> server;
     for(p = res; p != NULL; p = p->ai_next){
         try{
-            s = Socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+            Socket s = Socket(p->ai_family, p->ai_socktype, p->ai_protocol);
             if(setsockopt(s.getfd(), SOL_SOCKET, SO_REUSEADDR,&yes, sizeof(yes)) == -1){
                 throw runtime_error("Cannot reuse");
             }
             s.bind(p->ai_addr, p->ai_addrlen);
-            
+
             break;
         }catch(...){
             continue;
