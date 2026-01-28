@@ -25,6 +25,23 @@ class Socket{
         Socket(const Socket&) = delete;
         Socket& operator=(const Socket&) = delete;
 
+        //Move constructor
+        Socket(Socket&& other) noexcept : sockfd(other.sockfd){
+            other.sockfd = -1;
+        }
+
+        //Move assignment
+        Socket& operator=(Socket&& other){
+            if(this != &other){
+                if(sockfd != -1){
+                    close(sockfd);
+                }
+                sockfd = other.sockfd;
+                other.sockfd = -1;
+            }
+            return *this;
+        }
+
         // Is this address valid?
         void bind(sockaddr *my_addr, size_t addrlen){
             if(::bind(sockfd, my_addr, addrlen) == -1){
