@@ -56,6 +56,23 @@ class Socket{
             }
         }
 
+        //send message(actually send bytes)
+        void send(const string &msg){
+            size_t total = 0 ; 
+            size_t bytesWereSent = 0;
+            size_t len = msg.size();
+            while(total < len){
+                bytesWereSent = ::send(sockfd, msg.c_str() + total, len - total, 0);
+                if(bytesWereSent < 0){
+                    throw runtime_error("Sending message failed");
+                }
+                if(bytesWereSent == 0){
+                    throw runtime_error("Connection closed while sending");
+                }
+                total += bytesWereSent;
+            }
+        }
+
         //Deconstructor
         ~Socket(){
             if(sockfd != -1){
@@ -88,12 +105,15 @@ int main(){
                 throw runtime_error("Cannot reuse");
             }
             s.bind(p->ai_addr, p->ai_addrlen);
-
+            server = move(s);
             break;
         }catch(...){
             continue;
         }
     }
+
+    server.listen(20);
+
 
     return 0;
 }
