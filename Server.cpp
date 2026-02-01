@@ -4,11 +4,16 @@
 #include <netdb.h> 
 #include <unistd.h>
 #include <optional>
+#include<mutex>
 using namespace std ; 
+
+mutex mtx;
+vector<int> clients;
 
 class Socket{
     private: 
         int sockfd;
+        string buf;
     public:
         //Constructor
         Socket(int domain, int type, int protocol){
@@ -57,12 +62,12 @@ class Socket{
         }
 
         //send message(actually send bytes)
-        void send(const string &msg){
+        void send(int client_fd, const string &msg){
             size_t total = 0 ; 
             size_t bytesWereSent = 0;
             size_t len = msg.size();
             while(total < len){
-                bytesWereSent = ::send(sockfd, msg.c_str() + total, len - total, 0);
+                bytesWereSent = ::send(client_fd, msg.c_str() + total, len - total, 0);
                 if(bytesWereSent < 0){
                     throw runtime_error("Sending message failed");
                 }
@@ -74,9 +79,8 @@ class Socket{
         }
 
         // Recv message(actually recv bytes)
-        void recv(string &message){
+        void recv(int client_fd, string &message){
             message.clear();
-            static string buf;
             char buffer[1024];
             while(true){
                 size_t pos = buf.find('\n');
@@ -85,7 +89,7 @@ class Socket{
                     buf.erase(0,pos +1);
                     break;
                 }
-                int bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
+                int bytesWereRecv = ::recv(client_fd, buffer,sizeof(buffer),0);
                 if(bytesWereRecv == -1){
                     throw runtime_error("Recv failed");
                 }
@@ -94,6 +98,36 @@ class Socket{
                 }                
                 buf.append(buffer, bytesWereRecv);
             }
+        }
+
+        //Accept. Return a new socket to send and recv
+        Socket accept(sockaddr_storage &their_addr){
+            socklen_t addr_size = sizeof(their_addr);
+            int new_fd = ::accept(sockfd,(sockaddr *)&their_addr, &addr_size);
+            if(new_fd == -1){
+                throw runtime_error("Accepting failed");
+            }
+            return Socket(new_fd);
+        }
+
+
+        void handle_client(int &client_fd){
+            string msg;
+            while(true){
+                recv(client_fd, msg);
+                vector<int> tmp;
+                {
+                    lock_guard<mutex> lock(mtx);
+                    tmp = clients;
+                }
+                for(int fd : tmp){
+                    if(fd == sockfd) continue;
+                    if(fd != -1){
+                        send(fd, msg);
+                    }
+                }
+            }
+
         }
 
         //Deconstructor
@@ -110,6 +144,7 @@ int main(){
     int status;
     struct addrinfo hints{}; 
     struct addrinfo *res, *p;
+    struct sockaddr_storage their_addr;
     int yes = 1;
     string message;
 
@@ -137,7 +172,11 @@ int main(){
     }
 
     server.listen(20);
+    while(true){
+        Socket cli = server.accept(their_addr);
+        clients.push_back(cli);
 
+    }
 
     return 0;
 }
