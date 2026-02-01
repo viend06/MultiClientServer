@@ -73,6 +73,29 @@ class Socket{
             }
         }
 
+        // Recv message(actually recv bytes)
+        void recv(string &message){
+            message.clear();
+            static string buf;
+            char buffer[1024];
+            while(true){
+                size_t pos = buf.find('\n');
+                if(pos != string::npos){
+                    message = buf.substr(0,pos);
+                    buf.erase(0,pos +1);
+                    break;
+                }
+                int bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
+                if(bytesWereRecv == -1){
+                    throw runtime_error("Recv failed");
+                }
+                if(bytesWereRecv == 0){
+                    throw runtime_error("Disconnected!");
+                }                
+                buf.append(buffer, bytesWereRecv);
+            }
+        }
+
         //Deconstructor
         ~Socket(){
             if(sockfd != -1){
@@ -88,6 +111,7 @@ int main(){
     struct addrinfo hints{}; 
     struct addrinfo *res, *p;
     int yes = 1;
+    string message;
 
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
