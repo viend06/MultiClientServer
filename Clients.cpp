@@ -101,7 +101,6 @@ int main(){
     if(status != 0){
         throw runtime_error("Getting address information failed");
     }
-
     optional<Socket> client;
     for(p = res, p != NULL, p = p->ai_next){
         try{
