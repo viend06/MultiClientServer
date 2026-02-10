@@ -27,6 +27,10 @@ class Socket{
             return sockfd;
         }
 
+        Socket(int new_fd){
+            sockfd = new_fd;
+        }
+
         Socket(const Socket&) = delete;
         Socket& operator=(const Socket&) = delete;
 
