@@ -4,6 +4,8 @@
 #include <netdb.h> 
 #include <unistd.h>
 #include <optional>
+#include <thread>
+#include <string>
 using namespace std ; 
 
 class Socket{
@@ -45,12 +47,12 @@ class Socket{
         }
 
         //send message(actually send bytes)
-        void send(int client_fd, const string &msg){
+        void send(const string &msg){
             size_t total = 0 ; 
             size_t bytesWereSent = 0;
             size_t len = msg.size();
             while(total < len){
-                bytesWereSent = ::send(client_fd, msg.c_str() + total, len - total, 0);
+                bytesWereSent = ::send(sockfd, msg.c_str() + total, len - total, 0);
                 if(bytesWereSent < 0){
                     throw runtime_error("Sending message failed");
                 }
@@ -62,7 +64,7 @@ class Socket{
         }
 
         // Recv message(actually recv bytes)
-        void recv(int client_fd, string &message){
+        void recv(string &message){
             message.clear();
             char buffer[1024];
             while(true){
@@ -72,7 +74,7 @@ class Socket{
                     buf.erase(0,pos +1);
                     break;
                 }
-                int bytesWereRecv = ::recv(client_fd, buffer,sizeof(buffer),0);
+                int bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
                 if(bytesWereRecv == -1){
                     throw runtime_error("Recv failed");
                 }
@@ -87,6 +89,21 @@ class Socket{
             int n = ::connect(sockfd,serv_addr, addrlen);
             if(n == -1){
                 throw runtime_error("Connecting failed");
+            }
+        }
+
+        void loopSend(){
+            string msg;
+            while(getline(cin, msg)){
+                send(msg + '\n');
+            }
+        }
+
+        void loopRecv(){
+            string msg;
+            while(true){
+                recv(msg);
+                cout << msg << endl;
             }
         }
 };
@@ -112,5 +129,10 @@ int main(){
             continue;
         }
     }
-
+    freeaddrinfo(res);
+    
+    thread t1(&Socket::loopSend, &(*client));
+    thread t2(&Socket::loopRecv, &(*client));
+    t1.join();
+    t2.join();
 }
