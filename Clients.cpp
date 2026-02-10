@@ -11,6 +11,7 @@ using namespace std ;
 class Socket{
     private:
         int sockfd; 
+        string buf;
     public:
         //Constructor
         Socket(int domain, int type, int protocol){
@@ -136,3 +137,4 @@ int main(){
     t1.join();
     t2.join();
 }
+ 
