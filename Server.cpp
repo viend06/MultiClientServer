@@ -4,7 +4,10 @@
 #include <netdb.h> 
 #include <unistd.h>
 #include <optional>
-#include<mutex>
+#include <mutex>
+#include <vector>
+#include <thread>
+#include <string>
 using namespace std ; 
 
 mutex mtx;
@@ -82,11 +85,12 @@ class Socket{
         }
 
         // Recv message(actually recv bytes)
-        void recv(int client_fd, string &message){
+        void recv(string &message){
             message.clear();
+            string buf;
             while(true){
                 char buffer[1024];
-                int bytesWereRecv = ::recv(client_fd, buffer,sizeof(buffer),0);
+                int bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
                 if(bytesWereRecv == -1){
                     throw runtime_error("Recv failed");
                 }
@@ -114,10 +118,10 @@ class Socket{
         }
 
 
-        void handle_client(int &client_fd){
+        void handle_client(){
             string msg;
             while(true){
-                recv(client_fd, msg);
+                recv(msg);
                 vector<int> tmp;
                 {
                     lock_guard<mutex> lock(mtx);
@@ -126,7 +130,7 @@ class Socket{
                 for(int fd : tmp){
                     if(fd == sockfd) continue;
                     if(fd != -1){
-                        send(fd, msg);
+                        ::send(fd, (msg + '\n').c_str(), msg.size() + 1, 0);
                     }
                 }
             }
@@ -174,10 +178,15 @@ int main(){
         }
     }
 
-    server.listen(20);
+    server->listen(20);
     while(true){
-        Socket cli = server.accept(their_addr);
-        clients.push_back(cli);
+        Socket cli = server->accept(their_addr);
+        {
+            lock_guard<mutex> lock(mtx);
+            clients.push_back(cli.getfd());
+        }
+        thread t(&Socket::handle_client, move(cli));
+        t.detach();
 
     }
 
