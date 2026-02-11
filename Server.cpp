@@ -87,7 +87,7 @@ class Socket{
         // Recv message(actually recv bytes)
         void recv(string &message){
             message.clear();
-            string buf;
+            static string buf;
             while(true){
                 char buffer[1024];
                 int bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
