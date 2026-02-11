@@ -13,7 +13,6 @@ vector<int> clients;
 class Socket{
     private: 
         int sockfd;
-        string buf;
     public:
         //Constructor
         Socket(int domain, int type, int protocol){
@@ -85,14 +84,8 @@ class Socket{
         // Recv message(actually recv bytes)
         void recv(int client_fd, string &message){
             message.clear();
-            char buffer[1024];
             while(true){
-                size_t pos = buf.find('\n');
-                if(pos != string::npos){
-                    message = buf.substr(0,pos);
-                    buf.erase(0,pos +1);
-                    break;
-                }
+                char buffer[1024];
                 int bytesWereRecv = ::recv(client_fd, buffer,sizeof(buffer),0);
                 if(bytesWereRecv == -1){
                     throw runtime_error("Recv failed");
@@ -101,6 +94,12 @@ class Socket{
                     throw runtime_error("Disconnected!");
                 }                
                 buf.append(buffer, bytesWereRecv);
+                size_t pos = buf.find('\n');
+                if(pos != string::npos){
+                    message = buf.substr(0,pos);
+                    buf.erase(0,pos +1);
+                    break;
+                }
             }
         }
 
