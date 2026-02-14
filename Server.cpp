@@ -23,6 +23,7 @@ class Socket{
             if(sockfd == -1){
                 throw runtime_error("getting fd failed");
             }
+            cout << "Socket created successfully" << endl;
         }
 
         int getfd() const{
@@ -58,6 +59,7 @@ class Socket{
             if(::bind(sockfd, my_addr, addrlen) == -1){
                 throw runtime_error("bind failed");
             }
+            cout << "Successfully assigned the port and address to the server." << endl;
         }
 
         // Create stack
@@ -65,6 +67,7 @@ class Socket{
             if(::listen(sockfd, backlog) == -1){
                 throw runtime_error("Can not create stack for server");
             }
+            cout<< "Successfully created a listening stack." << endl;
         }
 
         //send message(actually send bytes)
@@ -114,6 +117,7 @@ class Socket{
             if(new_fd == -1){
                 throw runtime_error("Accepting failed");
             }
+            cout << new_fd + " joined the chat." << endl;
             return Socket(new_fd);
         }
 
