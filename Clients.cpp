@@ -11,6 +11,7 @@ using namespace std ;
 class Socket{
     private:
         int sockfd; 
+        string buf;
     public:
         //Constructor
         Socket(int domain, int type, int protocol){
@@ -66,7 +67,6 @@ class Socket{
         // Recv message(actually recv bytes)
         void recv(string &message){
             message.clear();
-            static string buf;
             while(true){
                 char buffer[1024];
                 int bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
