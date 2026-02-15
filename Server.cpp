@@ -8,6 +8,7 @@
 #include <vector>
 #include <thread>
 #include <string>
+#include <algorithm>
 using namespace std ; 
 
 mutex mtx;
@@ -123,22 +124,26 @@ class Socket{
 
 
         void handle_client(){
-            string msg;
-            while(true){
-                recv(msg);
-                vector<int> tmp;
-                {
-                    lock_guard<mutex> lock(mtx);
-                    tmp = clients;
-                }
-                for(int fd : tmp){
-                    if(fd == sockfd) continue;
-                    if(fd != -1){
-                        ::send(fd, (msg + '\n').c_str(), msg.size() + 1, 0);
+            try{
+                string msg;
+                while(true){
+                    recv(msg);
+                    vector<int> tmp;
+                    {
+                        lock_guard<mutex> lock(mtx);
+                        tmp = clients;
+                    }
+                    for(int fd : tmp){
+                        if(fd == sockfd) continue;
+                        if(fd != -1){
+                            ::send(fd, (msg + '\n').c_str(), msg.size() + 1, 0);
+                        }
                     }
                 }
+            }catch(...){
+                lock_guard<mutex> lock(mtx);
+                clients.erase(remove(cliens.begin(), clients.end(), sockfd), clients.end());
             }
-
         }
 
         //Deconstructor
@@ -181,7 +186,7 @@ int main(){
             continue;
         }
     }
-
+    freeaddrinfo(res);
     server->listen(20);
     while(true){
         Socket cli = server->accept(their_addr);
