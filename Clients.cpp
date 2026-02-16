@@ -120,7 +120,7 @@ int main(){
         throw runtime_error("Getting address information failed");
     }
     optional<Socket> client;
-    for(p = res, p != NULL, p = p->ai_next){
+    for(p = res; p != NULL; p = p->ai_next){
         try{
             Socket s(p->ai_family, p->ai_socktype, p->ai_protocol);
             s.connect(p->ai_addr, p->ai_addrlen);

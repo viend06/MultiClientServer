@@ -17,6 +17,7 @@ vector<int> clients;
 class Socket{
     private: 
         int sockfd;
+        string buf;
     public:
         //Constructor
         Socket(int domain, int type, int protocol){
@@ -91,7 +92,6 @@ class Socket{
         // Recv message(actually recv bytes)
         void recv(string &message){
             message.clear();
-            static string buf;
             while(true){
                 char buffer[1024];
                 int bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
@@ -118,7 +118,7 @@ class Socket{
             if(new_fd == -1){
                 throw runtime_error("Accepting failed");
             }
-            cout << new_fd + " joined the chat." << endl;
+            cout << new_fd << " joined the chat." << endl;
             return Socket(new_fd);
         }
 
@@ -142,7 +142,7 @@ class Socket{
                 }
             }catch(...){
                 lock_guard<mutex> lock(mtx);
-                clients.erase(remove(cliens.begin(), clients.end(), sockfd), clients.end());
+                clients.erase(remove(clients.begin(), clients.end(), sockfd), clients.end());
             }
         }
 
