@@ -74,9 +74,9 @@ class Socket{
 
         //send message(actually send bytes)
         void send(int client_fd, const string &msg){
-            size_t total = 0 ; 
-            size_t bytesWereSent = 0;
-            size_t len = msg.size();
+            int total = 0 ; 
+            ssize_t bytesWereSent = 0;
+            int len = msg.size();
             while(total < len){
                 bytesWereSent = ::send(client_fd, msg.c_str() + total, len - total, 0);
                 if(bytesWereSent < 0){
@@ -94,7 +94,7 @@ class Socket{
             message.clear();
             while(true){
                 char buffer[1024];
-                int bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
+                ssize_t bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
                 if(bytesWereRecv == -1){
                     throw runtime_error("Recv failed");
                 }
@@ -102,7 +102,7 @@ class Socket{
                     throw runtime_error("Disconnected!");
                 }                
                 buf.append(buffer, bytesWereRecv);
-                size_t pos = buf.find('\n');
+                int pos = buf.find('\n');
                 if(pos != string::npos){
                     message = buf.substr(0,pos);
                     buf.erase(0,pos +1);
@@ -136,7 +136,7 @@ class Socket{
                     for(int fd : tmp){
                         if(fd == sockfd) continue;
                         if(fd != -1){
-                            ::send(fd, (msg + '\n').c_str(), msg.size() + 1, 0);
+                            send(fd, msg + '\n') ;
                         }
                     }
                 }
@@ -162,7 +162,6 @@ int main(){
     struct addrinfo *res, *p;
     struct sockaddr_storage their_addr;
     int yes = 1;
-    string message;
 
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;

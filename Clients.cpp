@@ -49,9 +49,9 @@ class Socket{
 
         //send message(actually send bytes)
         void send(const string &msg){
-            size_t total = 0 ; 
-            size_t bytesWereSent = 0;
-            size_t len = msg.size();
+            int total = 0 ; 
+            ssize_t bytesWereSent = 0;
+            int len = msg.size();
             while(total < len){
                 bytesWereSent = ::send(sockfd, msg.c_str() + total, len - total, 0);
                 if(bytesWereSent < 0){
@@ -69,7 +69,7 @@ class Socket{
             message.clear();
             while(true){
                 char buffer[1024];
-                int bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
+                ssize_t bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
                 if(bytesWereRecv == -1){
                     throw runtime_error("Recv failed");
                 }
@@ -77,7 +77,7 @@ class Socket{
                     throw runtime_error("Disconnected!");
                 }                
                 buf.append(buffer, bytesWereRecv);
-                size_t pos = buf.find('\n');
+                int pos = buf.find('\n');
                 if(pos != string::npos){
                     message = buf.substr(0,pos);
                     buf.erase(0,pos +1);
