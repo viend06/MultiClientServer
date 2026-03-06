@@ -166,6 +166,7 @@ int main(){
 
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
 
     status = getaddrinfo(NULL, "2026", &hints, &res);
     if(status != 0){
