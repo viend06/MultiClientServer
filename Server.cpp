@@ -135,15 +135,25 @@ class Socket{
 
         void handle_client(){
             try{
-                sendMessage(sockfd, "Moi nhap ten : ");
+                sendMessage(sockfd, "USERNAME:");
                 string user_name;
                 recvMessage(sockfd, user_name);
 
-                sendMessage(sockfd, "Moi nhap mat khau : ");
                 string pass;
-                recvMessage(sockfd, pass);
-
-                cout << user_name << " joined the chat." << endl;
+                
+                while(true){
+                    sendMessage(sockfd, "PASSWORD:");
+                    recvMessage(sockfd, pass);
+                    
+                    if(check(user_name, pass)){
+                        sendMessage(sockfd, "LOGIN_OK");
+                        cout << user_name << " joined the chat." << endl;
+                        break;
+                    } else {
+                        sendMessage(sockfd,"LOGIN_FAIL");
+                    }
+                }
+                
                 {
                     lock_guard<mutex> lock(mtx);
                     clients[sockfd].name = user_name;
@@ -248,6 +258,7 @@ int main(){
     }
     freeaddrinfo(res);
     server->listen(20);
+    server->readFromFile();
     while(true){
         Socket cli = server->accept(their_addr);
         thread t(&Socket::handle_client, move(cli));
