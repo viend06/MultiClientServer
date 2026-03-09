@@ -183,6 +183,23 @@ class Socket{
             }
         }
 
+        void readFromFile(){
+            {
+                lock_guard<mutex> lock(mtx);
+                ifstream file("user.txt");
+                string information;
+                while(getline(file, information)){
+                    stringstream ss(information);
+                    string name, password;
+                    ss >> name >> password;
+                    list_user[name] = password;
+                }
+                file.close();
+                // ofstream clear("user.txt", ios::trunc);
+                // clear.close();
+            }
+        }
+
         //Deconstructor
         ~Socket(){
             if(sockfd != -1){
