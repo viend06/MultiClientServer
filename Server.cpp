@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <unordered_map>
 #include <fstream>
+#include <sstream>
 #include "transport/send_recv.h"
 using namespace std ; 
 
@@ -21,6 +22,7 @@ struct InfoOfUsers{
     string password;
 };
 
+unordered_map<string, string> list_user;
 unordered_map<int, InfoOfUsers> clients;
 
 class Socket{
