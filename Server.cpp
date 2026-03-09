@@ -172,7 +172,13 @@ class Socket{
             }
         }
 
-        
+        bool check(const string &name, const string &password){
+            lock_guard<mutex> lock(mtx);
+
+            auto it = list_user.find(name);
+            if(it == list_user.end()) return false;
+            return it->second == password;
+        }
 
         void saveToFile(const string &name, const string &pw){
             {
