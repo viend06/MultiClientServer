@@ -6,6 +6,7 @@
 #include <optional>
 #include <thread>
 #include <string>
+#include "transport/send_recv.h"
 using namespace std ; 
 
 class Socket{
@@ -25,6 +26,10 @@ class Socket{
             if(sockfd != -1){
                 close(sockfd);
             }
+        }
+
+        int getfd() const{
+            return sockfd;
         }
 
         Socket(const Socket&) = delete;
@@ -122,7 +127,7 @@ int main(){
     optional<Socket> client;
     for(p = res; p != NULL; p = p->ai_next){
         try{
-            Socket s(p->ai_family, p->ai_socktype, p->ai_protocol);
+            Socket s(p->ai_family, p->ai_socktype, p->ai_protocol);                                     
             s.connect(p->ai_addr, p->ai_addrlen);
             client = move(s);
             break;
@@ -131,7 +136,23 @@ int main(){
         }
     }
     freeaddrinfo(res);
-    
+
+    {
+        string user_name;
+        string password;
+        string msg;
+         
+        recvMessage(client->getfd(), msg);
+        cout << msg ; 
+        getline(cin, user_name);
+        sendMessage(client->getfd(), user_name);
+
+        recvMessage(client->getfd(), msg);
+        cout << msg;
+        getline(cin, password);
+        sendMessage(client->getfd(), password);
+    }
+
     thread t1(&Socket::loopSend, &(*client));
     thread t2(&Socket::loopRecv, &(*client));
     t1.join();

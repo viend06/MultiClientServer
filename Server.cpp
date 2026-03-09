@@ -9,10 +9,19 @@
 #include <thread>
 #include <string>
 #include <algorithm>
+#include <unordered_map>
+#include <fstream>
+#include "transport/send_recv.h"
 using namespace std ; 
 
 mutex mtx;
-vector<int> clients;
+
+struct InfoOfUsers{
+    string name;
+    string password;
+};
+
+unordered_map<int, InfoOfUsers> clients;
 
 class Socket{
     private: 
@@ -118,32 +127,54 @@ class Socket{
             if(new_fd == -1){
                 throw runtime_error("Accepting failed");
             }
-            cout << new_fd << " joined the chat." << endl;
             return Socket(new_fd);
         }
 
 
         void handle_client(){
             try{
+                sendMessage(sockfd, "Moi nhap ten : ");
+                string user_name;
+                recvMessage(sockfd, user_name);
+
+                sendMessage(sockfd, "Moi nhap mat khau : ");
+                string pass;
+                recvMessage(sockfd, pass);
+
+                cout << user_name << " joined the chat." << endl;
+                {
+                    lock_guard<mutex> lock(mtx);
+                    clients[sockfd].name = user_name;
+                    clients[sockfd].password = pass;
+                }
                 string msg;
                 while(true){
                     recv(msg);
-                    vector<int> tmp;
+                    unordered_map<int, InfoOfUsers> tmp;
                     {
                         lock_guard<mutex> lock(mtx);
                         tmp = clients;
                     }
-                    for(int fd : tmp){
-                        if(fd == sockfd) continue;
-                        if(fd != -1){
-                            send(fd, msg + '\n') ;
+                    for(auto &cli : tmp){
+                        if(cli.first == sockfd) continue;
+                        if(cli.first != -1){
+                            send(cli.first,user_name + " : " +  msg + '\n') ;
                         }
                     }
                 }
             }catch(...){
                 lock_guard<mutex> lock(mtx);
-                clients.erase(remove(clients.begin(), clients.end(), sockfd), clients.end());
+                cout << clients[sockfd].name << " left the chat." << endl;
+                saveToFile(clients[sockfd].name, clients[sockfd].password);
+                clients.erase(sockfd);
             }
+        }
+
+        
+
+        void saveToFile(const string &name, const string pw){
+            ofstream file("user.txt", ios::app);
+            file << name << " " << pw << endl;
         }
 
         //Deconstructor
@@ -190,13 +221,8 @@ int main(){
     server->listen(20);
     while(true){
         Socket cli = server->accept(their_addr);
-        {
-            lock_guard<mutex> lock(mtx);
-            clients.push_back(cli.getfd());
-        }
         thread t(&Socket::handle_client, move(cli));
         t.detach();
-
     }
 
     return 0;
