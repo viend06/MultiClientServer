@@ -147,10 +147,21 @@ int main(){
         getline(cin, user_name);
         sendMessage(client->getfd(), user_name);
 
-        recvMessage(client->getfd(), msg);
-        cout << msg;
-        getline(cin, password);
-        sendMessage(client->getfd(), password);
+        while(true){
+            recvMessage(client->getfd(), msg);
+            
+            if(msg == "LOGIN_OK"){
+                cout << "Dang nhap thanh cong!\n";
+                break;
+            }
+            
+            if(msg == "LOGIN_FAIL"){
+                cout << "Sai mat khau.Thu lai.\n";
+            }
+            cout <<"Nhap password: ";
+            getline(cin, password);
+            sendMessage(client->getfd(), password);
+        }
     }
 
     thread t1(&Socket::loopSend, &(*client));
