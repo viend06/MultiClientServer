@@ -174,9 +174,13 @@ class Socket{
 
         
 
-        void saveToFile(const string &name, const string pw){
-            ofstream file("user.txt", ios::app);
-            file << name << " " << pw << endl;
+        void saveToFile(const string &name, const string &pw){
+            {
+                lock_guard<mutex> lock(mtx);
+                ofstream file("user.txt", ios::app);
+                file << name << " " << pw << endl;
+                file.close();
+            }
         }
 
         //Deconstructor
