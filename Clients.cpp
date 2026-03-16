@@ -1,167 +1,177 @@
-#include<iostream> 
+#include <iostream>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h> 
+#include <netdb.h>
 #include <unistd.h>
 #include <optional>
 #include <thread>
 #include <string>
 #include "transport/send_recv.h"
-using namespace std ; 
+#include "login/Login.h"
+using namespace std;
 
-class Socket{
-    private:
-        int sockfd; 
-        string buf;
-    public:
-        //Constructor
-        Socket(int domain, int type, int protocol){
-            sockfd = ::socket(domain, type, protocol);
-            if(sockfd == -1){
-                throw runtime_error("getting fd failed");
-            }
+class Socket
+{
+private:
+    int sockfd;
+    string buf;
+
+public:
+    // Constructor
+    Socket(int domain, int type, int protocol)
+    {
+        sockfd = ::socket(domain, type, protocol);
+        if (sockfd == -1)
+        {
+            throw runtime_error("getting fd failed");
         }
+    }
 
-        ~Socket(){
-            if(sockfd != -1){
+    ~Socket()
+    {
+        if (sockfd != -1)
+        {
+            close(sockfd);
+        }
+    }
+
+    int getfd() const
+    {
+        return sockfd;
+    }
+
+    Socket(const Socket &) = delete;
+    Socket &operator=(const Socket &) = delete;
+
+    // Move constructor
+    Socket(Socket &&other) noexcept : sockfd(other.sockfd)
+    {
+        other.sockfd = -1;
+    }
+
+    // Move assignment
+    Socket &operator=(Socket &&other)
+    {
+        if (this != &other)
+        {
+            if (sockfd != -1)
+            {
                 close(sockfd);
             }
-        }
-
-        int getfd() const{
-            return sockfd;
-        }
-
-        Socket(const Socket&) = delete;
-        Socket& operator=(const Socket&) = delete;
-
-        //Move constructor
-        Socket(Socket&& other) noexcept : sockfd(other.sockfd){
+            sockfd = other.sockfd;
             other.sockfd = -1;
         }
+        return *this;
+    }
 
-        //Move assignment
-        Socket& operator=(Socket&& other){
-            if(this != &other){
-                if(sockfd != -1){
-                    close(sockfd);
-                }
-                sockfd = other.sockfd;
-                other.sockfd = -1;
+    // send message(actually send bytes)
+    void send(const string &msg)
+    {
+        int total = 0;
+        ssize_t bytesWereSent = 0;
+        int len = msg.size();
+        while (total < len)
+        {
+            bytesWereSent = ::send(sockfd, msg.c_str() + total, len - total, 0);
+            if (bytesWereSent < 0)
+            {
+                throw runtime_error("Sending message failed");
             }
-            return *this;
-        }
-
-        //send message(actually send bytes)
-        void send(const string &msg){
-            int total = 0 ; 
-            ssize_t bytesWereSent = 0;
-            int len = msg.size();
-            while(total < len){
-                bytesWereSent = ::send(sockfd, msg.c_str() + total, len - total, 0);
-                if(bytesWereSent < 0){
-                    throw runtime_error("Sending message failed");
-                }
-                if(bytesWereSent == 0){
-                    throw runtime_error("Connection closed while sending");
-                }
-                total += bytesWereSent;
+            if (bytesWereSent == 0)
+            {
+                throw runtime_error("Connection closed while sending");
             }
+            total += bytesWereSent;
         }
+    }
 
-        // Recv message(actually recv bytes)
-        void recv(string &message){
-            message.clear();
-            while(true){
-                char buffer[1024];
-                ssize_t bytesWereRecv = ::recv(sockfd, buffer,sizeof(buffer),0);
-                if(bytesWereRecv == -1){
-                    throw runtime_error("Recv failed");
-                }
-                if(bytesWereRecv == 0){
-                    throw runtime_error("Disconnected!");
-                }                
-                buf.append(buffer, bytesWereRecv);
-                int pos = buf.find('\n');
-                if(pos != string::npos){
-                    message = buf.substr(0,pos);
-                    buf.erase(0,pos +1);
-                    break;
-                }
+    // Recv message(actually recv bytes)
+    void recv(string &message)
+    {
+        message.clear();
+        while (true)
+        {
+            char buffer[1024];
+            ssize_t bytesWereRecv = ::recv(sockfd, buffer, sizeof(buffer), 0);
+            if (bytesWereRecv == -1)
+            {
+                throw runtime_error("Recv failed");
+            }
+            if (bytesWereRecv == 0)
+            {
+                throw runtime_error("Disconnected!");
+            }
+            buf.append(buffer, bytesWereRecv);
+            int pos = buf.find('\n');
+            if (pos != string::npos)
+            {
+                message = buf.substr(0, pos);
+                buf.erase(0, pos + 1);
+                break;
             }
         }
+    }
 
-        void connect(sockaddr *serv_addr, int addrlen){
-            int n = ::connect(sockfd,serv_addr, addrlen);
-            if(n == -1){
-                throw runtime_error("Connecting failed");
-            }
+    void connect(sockaddr *serv_addr, int addrlen)
+    {
+        int n = ::connect(sockfd, serv_addr, addrlen);
+        if (n == -1)
+        {
+            throw runtime_error("Connecting failed");
         }
+    }
 
-        void loopSend(){
-            string msg;
-            while(getline(cin, msg)){
-                send(msg + '\n');
-            }
+    void loopSend()
+    {
+        string msg;
+        while (getline(cin, msg))
+        {
+            send(msg + '\n');
         }
+    }
 
-        void loopRecv(){
-            string msg;
-            while(true){
-                recv(msg);
-                cout << msg << endl;
-            }
+    void loopRecv()
+    {
+        string msg;
+        while (true)
+        {
+            recv(msg);
+            cout << msg << endl;
         }
+    }
 };
 
-int main(){
+int main()
+{
     int status;
-    addrinfo  hints{}, *res, *p;
+    addrinfo hints{}, *res, *p;
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    status = getaddrinfo("127.0.0.1", "2026",&hints, &res);
-    if(status != 0){
+    status = getaddrinfo("127.0.0.1", "2026", &hints, &res);
+    if (status != 0)
+    {
         throw runtime_error("Getting address information failed");
     }
     optional<Socket> client;
-    for(p = res; p != NULL; p = p->ai_next){
-        try{
-            Socket s(p->ai_family, p->ai_socktype, p->ai_protocol);                                     
+    for (p = res; p != NULL; p = p->ai_next)
+    {
+        try
+        {
+            Socket s(p->ai_family, p->ai_socktype, p->ai_protocol);
             s.connect(p->ai_addr, p->ai_addrlen);
             client = move(s);
             break;
-        }catch(...){
+        }
+        catch (...)
+        {
             continue;
         }
     }
     freeaddrinfo(res);
 
     {
-        string user_name;
-        string password;
-        string msg;
-         
-        recvMessage(client->getfd(), msg);
-        cout << msg ; 
-        getline(cin, user_name);
-        sendMessage(client->getfd(), user_name);
-
-        while(true){
-            recvMessage(client->getfd(), msg);
-            
-            if(msg == "LOGIN_OK"){
-                cout << "Dang nhap thanh cong!\n";
-                break;
-            }
-            
-            if(msg == "LOGIN_FAIL"){
-                cout << "Sai mat khau.Thu lai.\n";
-            }
-            cout <<"Nhap password: ";
-            getline(cin, password);
-            sendMessage(client->getfd(), password);
-        }
+        userLogin(client->getfd());
     }
 
     thread t1(&Socket::loopSend, &(*client));
@@ -169,4 +179,3 @@ int main(){
     t1.join();
     t2.join();
 }
- 

@@ -159,28 +159,10 @@ public:
     {
         try
         {
-            sendMessage(sockfd, "USERNAME:");
             string user_name;
-            recvMessage(sockfd, user_name);
-
             string pass;
 
-            while (true)
-            {
-                sendMessage(sockfd, "PASSWORD:");
-                recvMessage(sockfd, pass);
-
-                if (check(user_name, pass))
-                {
-                    sendMessage(sockfd, "LOGIN_OK");
-                    cout << user_name << " joined the chat." << endl;
-                    break;
-                }
-                else
-                {
-                    sendMessage(sockfd, "LOGIN_FAIL");
-                }
-            }
+            handleLoginResponse(fd, user_name, pass);
 
             {
                 lock_guard<mutex> lock(mtx);
