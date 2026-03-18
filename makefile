@@ -1,8 +1,8 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -pthread
+CXXFLAGS = -std=c++17 -pthread -I.
 
-SERVER_SRC = Server.cpp transport/send_recv.cpp
-CLIENT_SRC = Clients.cpp transport/send_recv.cpp
+SERVER_SRC = Server.cpp transport/send_recv.cpp FileIO/FileHandler.cpp login/Login.cpp
+CLIENT_SRC = Clients.cpp transport/send_recv.cpp login/Login.cpp
 
 SERVER_BIN = server
 CLIENT_BIN = client
