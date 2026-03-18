@@ -12,15 +12,12 @@
 #include "FileIO/FileHandler.h"
 using namespace std;
 
-mutex mtx;
-
 struct InfoOfUsers
 {
     string name;
     string password;
 };
 
-unordered_map<string, string> list_user;
 unordered_map<int, InfoOfUsers> clients;
 
 class Socket
@@ -162,7 +159,7 @@ public:
             string user_name;
             string pass;
 
-            handleLoginResponse(fd, user_name, pass);
+            handleLoginResponse(sockfd, user_name, pass);
 
             {
                 lock_guard<mutex> lock(mtx);
