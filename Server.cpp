@@ -169,11 +169,16 @@ public:
                 clients[sockfd].password = pass;
             }
             string msg;
+            bool running = true;
             while (true)
             {
                 recv(msg);
                 Command cmd = parseCommand(msg, fd);
                 dispatchCommand(cmd, running);
+                if (!running)
+                {
+                    break;
+                }
                 unordered_map<int, InfoOfUsers> tmp;
                 {
                     lock_guard<mutex> lock(mtx);
