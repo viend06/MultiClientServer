@@ -151,39 +151,51 @@ public:
 
 int main()
 {
-    int status;
-    addrinfo hints{}, *res, *p;
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
+    while (true)
+    {
+        int status;
+        addrinfo hints{}, *res, *p;
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
 
-    status = getaddrinfo("127.0.0.1", "2026", &hints, &res);
-    if (status != 0)
-    {
-        throw runtime_error("Getting address information failed");
-    }
-    optional<Socket> client;
-    for (p = res; p != NULL; p = p->ai_next)
-    {
-        try
+        status = getaddrinfo("127.0.0.1", "2026", &hints, &res);
+        if (status != 0)
         {
-            Socket s(p->ai_family, p->ai_socktype, p->ai_protocol);
-            s.connect(p->ai_addr, p->ai_addrlen);
-            client = move(s);
+            throw runtime_error("Getting address information failed");
+        }
+        optional<Socket> client;
+        for (p = res; p != NULL; p = p->ai_next)
+        {
+            try
+            {
+                Socket s(p->ai_family, p->ai_socktype, p->ai_protocol);
+                s.connect(p->ai_addr, p->ai_addrlen);
+                client = move(s);
+                break;
+            }
+            catch (...)
+            {
+                continue;
+            }
+        }
+        freeaddrinfo(res);
+
+        {
+            userLogin(client->getfd());
+        }
+
+        thread t1(&Socket::loopSend, &(*client));
+        thread t2(&Socket::loopRecv, &(*client));
+        t1.join();
+        t2.join();
+
+        cout << "\nLogin again? (y/n):";
+        char c;
+        cin >> c;
+        cin.ignore();
+        if (c != 'y' && c != 'Y')
             break;
-        }
-        catch (...)
-        {
-            continue;
-        }
-    }
-    freeaddrinfo(res);
-
-    {
-        userLogin(client->getfd());
     }
 
-    thread t1(&Socket::loopSend, &(*client));
-    thread t2(&Socket::loopRecv, &(*client));
-    t1.join();
-    t2.join();
+    cout << "GOODBYE!" << endl;
 }
