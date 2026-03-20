@@ -127,6 +127,10 @@ public:
         while (getline(cin, msg))
         {
             send(msg + '\n');
+            if (msg == "/quit")
+            {
+                break;
+            }
         }
     }
 
@@ -136,6 +140,10 @@ public:
         while (true)
         {
             recv(msg);
+            if (msg == "QUIT_OK")
+            {
+                break;
+            }
             cout << msg << endl;
         }
     }
