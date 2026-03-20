@@ -10,6 +10,8 @@
 #include "transport/send_recv.h"
 #include "login/Login.h"
 #include "FileIO/FileHandler.h"
+#include "commands/CommandParser.h"
+#include "commands/CommandDispatcher.h"
 using namespace std;
 
 struct InfoOfUsers
@@ -170,6 +172,8 @@ public:
             while (true)
             {
                 recv(msg);
+                Command cmd = parseCommand(msg, fd);
+                dispatchCommand(cmd, running);
                 unordered_map<int, InfoOfUsers> tmp;
                 {
                     lock_guard<mutex> lock(mtx);
