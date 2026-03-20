@@ -156,17 +156,31 @@ public:
 
     void handle_client()
     {
+        int fd = sockfd;
+        auto cleanup = [&]()
+        {
+            string name, password;
+            {
+                lock_guard<mutex> lock(mtx);
+                name = clients[fd].name;
+                password = clients[fd].password;
+                clients.erase(fd);
+            } // lock được release ở đây
+            saveToFile(name, password); // không còn deadlock
+            cout << name << " left the chat." << endl;
+        };
+
         try
         {
             string user_name;
             string pass;
 
-            handleLoginResponse(sockfd, user_name, pass);
+            handleLoginResponse(fd, user_name, pass);
 
             {
                 lock_guard<mutex> lock(mtx);
-                clients[sockfd].name = user_name;
-                clients[sockfd].password = pass;
+                clients[fd].name = user_name;
+                clients[fd].password = pass;
             }
             string msg;
             bool running = true;
@@ -186,21 +200,30 @@ public:
                 }
                 for (auto &cli : tmp)
                 {
-                    if (cli.first == sockfd)
+                    if (cli.first == fd)
                         continue;
-                    if (cli.first != -1)
+                    try
                     {
                         send(cli.first, user_name + " : " + msg + '\n');
                     }
+                    catch (...) // client kia đã disconnect
+                    {
+                        lock_guard<mutex> lock(mtx);
+                        if (clients.find(cli.first) != clients.end())
+                        {
+                            cout << clients[cli.first].name << " left the chat." << endl;
+                            saveToFile(clients[cli.first].name, clients[cli.first].password);
+                            clients.erase(cli.first);
+                        }
+                    }
                 }
             }
+
+            cleanup();
         }
         catch (...)
         {
-            lock_guard<mutex> lock(mtx);
-            cout << clients[sockfd].name << " left the chat." << endl;
-            saveToFile(clients[sockfd].name, clients[sockfd].password);
-            clients.erase(sockfd);
+            cleanup();
         }
     }
 
