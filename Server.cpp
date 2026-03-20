@@ -121,6 +121,13 @@ public:
         message.clear();
         while (true)
         {
+            int pos = buf.find('\n');
+            if (pos != string::npos)
+            {
+                message = buf.substr(0, pos);
+                buf.erase(0, pos + 1);
+                break;
+            }
             char buffer[1024];
             ssize_t bytesWereRecv = ::recv(sockfd, buffer, sizeof(buffer), 0);
             if (bytesWereRecv == -1)
@@ -132,13 +139,6 @@ public:
                 throw runtime_error("Disconnected!");
             }
             buf.append(buffer, bytesWereRecv);
-            int pos = buf.find('\n');
-            if (pos != string::npos)
-            {
-                message = buf.substr(0, pos);
-                buf.erase(0, pos + 1);
-                break;
-            }
         }
     }
 
