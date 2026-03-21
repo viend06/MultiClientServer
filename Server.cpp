@@ -12,6 +12,7 @@
 #include "FileIO/FileHandler.h"
 #include "commands/CommandParser.h"
 #include "commands/CommandDispatcher.h"
+#include "commands/Command.h"
 using namespace std;
 
 struct InfoOfUsers
@@ -21,6 +22,19 @@ struct InfoOfUsers
 };
 
 unordered_map<int, InfoOfUsers> clients;
+
+int findByName(const string &name)
+{
+    lock_guard<mutex> lock(mtx);
+    for (auto &[fd, info] : clients)
+    {
+        if (info.name == name)
+        {
+            return fd;
+        }
+    }
+    return -1;
+}
 
 class Socket
 {
@@ -184,7 +198,7 @@ public:
             }
             string msg;
             bool running = true;
-            while (true)
+            while (running)
             {
                 recv(msg);
                 Command cmd = parseCommand(msg, fd);
