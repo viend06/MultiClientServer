@@ -7,10 +7,6 @@ enum CommandType
 {
     LOGIN,
     MSG,
-    PRIVATE_MSG,
-    JOIN,
-    LEAVE,
-    LIST,
     QUIT,
     UNKNOWN
 };
@@ -22,7 +18,6 @@ struct Command
     string user;
     string password;
     string message;
-    string room;
 };
 
 #endif
