@@ -11,7 +11,6 @@ Command parseCommand(string &input, int &socketFD)
     cmd.type = UNKNOWN;
     cmd.user.clear();
     cmd.message.clear();
-    cmd.room.clear();
 
     stringstream ss(input);
 
@@ -27,25 +26,12 @@ Command parseCommand(string &input, int &socketFD)
     else if (command == "/msg")
     {
         cmd.type = MSG;
+        ss >> cmd.recipient;
         getline(ss, cmd.message);
         if (!cmd.message.empty() && cmd.message.front() == ' ')
         {
             cmd.message.erase(0, 1);
         }
-    }
-    else if (command == "/join")
-    {
-        cmd.type = JOIN;
-        ss >> cmd.room;
-    }
-    else if (command == "/leave")
-    {
-        cmd.type = LEAVE;
-        ss >> cmd.room;
-    }
-    else if (command == "/list")
-    {
-        cmd.type = LIST;
     }
     else if (command == "/quit")
     {
