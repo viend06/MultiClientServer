@@ -16,9 +16,6 @@ void dispatchCommand(Command &cmd, bool &running)
     case MSG:
         break;
 
-    case LIST:
-        break;
-
     case QUIT:
         checkQuitChat(cmd.socketFD, cmd.message, running);
         break;
