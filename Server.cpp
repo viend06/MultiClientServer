@@ -207,27 +207,63 @@ public:
                 {
                     break;
                 }
-                unordered_map<int, InfoOfUsers> tmp;
+                if (cmd.type == MSG)
                 {
-                    lock_guard<mutex> lock(mtx);
-                    tmp = clients;
-                }
-                for (auto &cli : tmp)
-                {
-                    if (cli.first == fd)
-                        continue;
-                    try
+                    // Parse msg thô: /msg <token1> [phần còn lại]
+                    // token1 khớp tên user online → PM, ngược lại → broadcast
+                    stringstream ss(msg);
+                    string command, token1, rest;
+                    ss >> command >> token1;
+                    getline(ss, rest);
+                    if (!rest.empty() && rest.front() == ' ')
+                        rest.erase(0, 1);
+
+                    int targetFd = findByName(token1);
+
+                    if (!token1.empty() && targetFd != -1)
                     {
-                        send(cli.first, user_name + " : " + msg + '\n');
-                    }
-                    catch (...) // client kia đã disconnect
-                    {
-                        lock_guard<mutex> lock(mtx);
-                        if (clients.find(cli.first) != clients.end())
+                        // ── Private message ──────────────────────────────
+                        try
                         {
-                            cout << clients[cli.first].name << " left the chat." << endl;
-                            saveToFile(clients[cli.first].name, clients[cli.first].password);
-                            clients.erase(cli.first);
+                            send(targetFd, "[PM] " + user_name + " : " + rest + '\n');
+                        }
+                        catch (...)
+                        {
+                            send(fd, "[Server] Failed to deliver message to '" + token1 + "'.\n");
+                        }
+                        send(fd, "[PM -> " + token1 + "] " + rest + '\n');
+                    }
+                    else
+                    {
+                        // ── Broadcast ────────────────────────────────────
+                        // Ghép lại toàn bộ nội dung: token1 + rest
+                        string fullMsg = token1;
+                        if (!rest.empty())
+                            fullMsg += " " + rest;
+
+                        unordered_map<int, InfoOfUsers> tmp;
+                        {
+                            lock_guard<mutex> lock(mtx);
+                            tmp = clients;
+                        }
+                        for (auto &cli : tmp)
+                        {
+                            if (cli.first == fd)
+                                continue;
+                            try
+                            {
+                                send(cli.first, user_name + " : " + fullMsg + '\n');
+                            }
+                            catch (...)
+                            {
+                                lock_guard<mutex> lock(mtx);
+                                if (clients.find(cli.first) != clients.end())
+                                {
+                                    cout << clients[cli.first].name << " left the chat." << endl;
+                                    saveToFile(clients[cli.first].name, clients[cli.first].password);
+                                    clients.erase(cli.first);
+                                }
+                            }
                         }
                     }
                 }
